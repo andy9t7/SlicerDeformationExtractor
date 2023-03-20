@@ -1,4 +1,5 @@
 import vtk
+import numpy as np
 
 import slicer
 from slicer.ScriptedLoadableModule import *
@@ -30,9 +31,6 @@ See more information in <a href="https://github.com/organization/projectname#Def
 This file was originally developed by Jean-Christophe Fillion-Robin, Kitware Inc., Andras Lasso, PerkLab,
 and Steve Pieper, Isomics, Inc. and was partially funded by NIH grant 3P41RR013218-12S1.
 """
-
-        # Additional initialization step after application startup is complete
-        slicer.app.connect("startupCompleted()", registerSampleData)
 
 #
 # DeformationExtractorWidget
@@ -108,12 +106,10 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
     def exit(self) -> None:
         """
         Called each time the user opens a different module.
-        """
-        # Do not react to parameter node changes (GUI will be updated when the user enters into the module)
-        if self._parameterNode:
-            self._parameterNode.disconnectGui(self._parameterNodeGuiTag)
-            self._parameterNodeGuiTag = None
-            self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self._checkCanApply)
+        """ 
+        # Do not react to parameter node changes (GUI wlil be updated when the user enters into the module)
+        self.removeObserver(self._parameterNode, vtk.vtkCommand.ModifiedEvent, self.updateGUIFromParameterNode)
+
 
     def onSceneStartClose(self, caller, event) -> None:
         """
@@ -168,6 +164,11 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         # Make sure GUI changes do not call updateParameterNodeFromGUI (it could cause infinite loop)
         self._updatingGUIFromParameterNode = True
 
+        # Update node selectors and sliders
+        self.ui.inputSurfaceSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputSurface"))
+        self.ui.inputTransformSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputTransform"))
+        self.ui.outputSurfaceSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputSurface"))
+
         self._updatingGUIFromParameterNode = False
 
     def updateParameterNodeFromGUI(self, caller=None, event=None):
@@ -216,24 +217,64 @@ class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
         """
         ScriptedLoadableModuleLogic.__init__(self)
 
+    def getDisplacementVectors(self, inputSurface, deformedSurface):
+
+        # Get points from models
+        undeformed_points = inputSurface.GetPolyData().GetPoints()
+        deformed_points = deformedSurface.GetPolyData().GetPoints()
+
+        # Calculate displacement vectors
+        num_points = deformed_points.GetNumberOfPoints()
+        displacement_vectors = vtk.vtkDoubleArray()
+        displacement_vectors.SetNumberOfComponents(3)
+        displacement_vectors.SetNumberOfTuples(num_points)
+        displacement_vectors.SetName('DisplacementVectors')
+
+        for i in range(num_points):
+            undeformed_point = np.array(undeformed_points.GetPoint(i))
+            deformed_point = np.array(deformed_points.GetPoint(i))
+            displacement_vector = deformed_point - undeformed_point
+            displacement_vectors.SetTuple(i, displacement_vector)
+
+        print(displacement_vectors.GetTuple(round(num_points/2)))
+        return displacement_vectors
+
+        
+
     def process(self,
                 inputSurface,
                 inputTransform,
                 outputSurface) -> None:
         
+        # Clone input surface to outputSurface
+        # Create a new vtkPolyData and DeepCopy the source model's polydata
+        #cloned_polydata = vtk.vtkPolyData()
+        #cloned_polydata.DeepCopy(inputSurface.GetPolyData())
+        #outputSurface.SetAndObservePolyData(cloned_polydata)
+
+        outputSurface.CopyContent(inputSurface)
+        #outputSurface.Modified()
+        
+        # Clone input surface and apply transform to produce deformed surface
         deformedSurface = slicer.vtkMRMLModelNode()
-        deformedSurface.Copy(inputSurface)
-
-
-
-
+        deformedSurface.SetName('DeformedSurface')
+        deformedSurface.CopyContent(inputSurface)
         deformedSurface.SetAndObserveTransformNodeID(inputTransform.GetID())
+        deformedSurface.Modified()
+        slicer.mrmlScene.AddNode(deformedSurface)
 
-        outputSurface = deformedSurface
+        displacementVectors = self.getDisplacementVectors(inputSurface, deformedSurface)
 
-        print(inputSurface)
-        print(inputTransform)
+        # Add the displacement vectors as a point data attribute
+        undeformed_polydata = outputSurface.GetPolyData()
+        undeformed_polydata.GetPointData().SetScalars(displacementVectors)
+        outputSurface.Modified()
+
+        # print(inputSurface.GetPolyData())
         print(deformedSurface)
+        # print(outputSurface)
+        # print(undeformed_polydata)
+
 
 
 
