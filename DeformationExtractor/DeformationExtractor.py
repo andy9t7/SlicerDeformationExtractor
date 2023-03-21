@@ -236,10 +236,7 @@ class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
             displacement_vector = deformed_point - undeformed_point
             displacement_vectors.SetTuple(i, displacement_vector)
 
-        print(displacement_vectors.GetTuple(round(num_points/2)))
         return displacement_vectors
-
-        
 
     def process(self,
                 inputSurface,
@@ -247,34 +244,21 @@ class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
                 outputSurface) -> None:
         
         # Clone input surface to outputSurface
-        # Create a new vtkPolyData and DeepCopy the source model's polydata
-        #cloned_polydata = vtk.vtkPolyData()
-        #cloned_polydata.DeepCopy(inputSurface.GetPolyData())
-        #outputSurface.SetAndObservePolyData(cloned_polydata)
-
         outputSurface.CopyContent(inputSurface)
-        #outputSurface.Modified()
-        
+
         # Clone input surface and apply transform to produce deformed surface
         deformedSurface = slicer.vtkMRMLModelNode()
         deformedSurface.SetName('DeformedSurface')
         deformedSurface.CopyContent(inputSurface)
         deformedSurface.SetAndObserveTransformNodeID(inputTransform.GetID())
-        deformedSurface.Modified()
         slicer.mrmlScene.AddNode(deformedSurface)
+        #deformedSurface.HardenTransform()
+        slicer.vtkSlicerTransformLogic().hardenTransform(deformedSurface)
 
+        # Get displacement vectors
         displacementVectors = self.getDisplacementVectors(inputSurface, deformedSurface)
 
         # Add the displacement vectors as a point data attribute
         undeformed_polydata = outputSurface.GetPolyData()
         undeformed_polydata.GetPointData().SetScalars(displacementVectors)
         outputSurface.Modified()
-
-        # print(inputSurface.GetPolyData())
-        print(deformedSurface)
-        # print(outputSurface)
-        # print(undeformed_polydata)
-
-
-
-
