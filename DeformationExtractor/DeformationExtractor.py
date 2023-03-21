@@ -18,7 +18,7 @@ class DeformationExtractor(ScriptedLoadableModule):
     def __init__(self, parent):
         ScriptedLoadableModule.__init__(self, parent)
         self.parent.title = "DeformationExtractor"  # TODO: make this more human readable by adding spaces
-        self.parent.categories = ["Examples"]  # TODO: set categories (folders where the module shows up in the module selector)
+        self.parent.categories = ["Surface Models"]  # TODO: set categories (folders where the module shows up in the module selector)
         self.parent.dependencies = []  # TODO: add here list of module names that this module requires
         self.parent.contributors = ["Andy Huynh (University of Western Australia)", "Benjamin Zwick (Universiy of Western Australia)"]  # TODO: replace with "Firstname Lastname (Organization)"
         # TODO: update with short description of the module and a link to online module documentation
@@ -82,7 +82,6 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         # (in the selected parameter node).
         self.ui.inputSurfaceSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI) #vtkMRMLModelNode
         self.ui.inputTransformSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI) #vtkMRMLGridTransformNode
-        self.ui.outputSurfaceSelector.connect("currentNodeChanged(vtkMRMLNode*)", self.updateParameterNodeFromGUI) #vtkMRMLModelNode
 
         # Buttons
         self.ui.applyButton.connect('clicked(bool)', self.onApplyButton)
@@ -167,7 +166,6 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         # Update node selectors and sliders
         self.ui.inputSurfaceSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputSurface"))
         self.ui.inputTransformSelector.setCurrentNode(self._parameterNode.GetNodeReference("InputTransform"))
-        self.ui.outputSurfaceSelector.setCurrentNode(self._parameterNode.GetNodeReference("OutputSurface"))
 
         self._updatingGUIFromParameterNode = False
 
@@ -184,7 +182,6 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
 
         self._parameterNode.SetNodeReferenceID("InputSurface", self.ui.inputSurfaceSelector.currentNodeID)
         self._parameterNode.SetNodeReferenceID("InputTransform", self.ui.inputTransformSelector.currentNodeID)
-        self._parameterNode.SetNodeReferenceID("OutputSurface", self.ui.outputSurfaceSelector.currentNodeID)
 
         self._parameterNode.EndModify(wasModified)
 
@@ -195,21 +192,13 @@ class DeformationExtractorWidget(ScriptedLoadableModuleWidget, VTKObservationMix
         with slicer.util.tryWithErrorDisplay("Failed to compute results.", waitCursor=True):
 
             # Compute output
-            self.logic.process(self.ui.inputSurfaceSelector.currentNode(), self.ui.inputTransformSelector.currentNode(), self.ui.outputSurfaceSelector.currentNode())
+            self.logic.process(self.ui.inputSurfaceSelector.currentNode(), self.ui.inputTransformSelector.currentNode(), self.ui.outputDirPath.currentPath)
 
 #
 # DeformationExtractorLogic
 #
 
 class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
-    """This class should implement all the actual
-    computation done by your module.  The interface
-    should be such that other python code can import
-    this class and make use of the functionality without
-    requiring an instance of the Widget.
-    Uses ScriptedLoadableModuleLogic base class, available at:
-    https://github.com/Slicer/Slicer/blob/main/Base/Python/slicer/ScriptedLoadableModule.py
-    """
 
     def __init__(self) -> None:
         """
@@ -237,13 +226,127 @@ class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
             displacement_vectors.SetTuple(i, displacement_vector)
 
         return displacement_vectors
+    
+    def computeStretch(self, undeformedSurface, outputDir):
+        """
+        Computes stretch and strain tensors from displacement vectors.
+
+        Code is a slightly modified version of code by Benjamin Zwick.
+        """
+
+        try:
+            import scipy.linalg
+            import pyvista as pv
+        except:
+            slicer.util.pip_install('scipy')
+            slicer.util.pip_install('pyvista')
+            import scipy.linalg
+            import pyvista as pv
+
+        undeformedSurface = pv.wrap(undeformedSurface.GetPolyData())
+        nnodes = undeformedSurface.points.shape[0]
+
+        # Displacement gradient
+        undeformedSurface = undeformedSurface.compute_derivative(scalars="DisplacementVectors")
+
+        # Initialize output arrays
+        undeformedSurface['U_max_val']  = np.empty((nnodes, 1))
+        undeformedSurface['U_mid_val']  = np.empty((nnodes, 1))
+        undeformedSurface['U_min_val']  = np.empty((nnodes, 1))
+
+        # undeformedSurface['V_max_val']  = np.empty((nnodes, 1))
+        # undeformedSurface['V_mid_val']  = np.empty((nnodes, 1))
+        # undeformedSurface['V_min_val']  = np.empty((nnodes, 1))
+
+        # undeformedSurface['NE_max_val'] = np.empty((nnodes, 1))
+        # undeformedSurface['NE_mid_val'] = np.empty((nnodes, 1))
+        # undeformedSurface['NE_min_val'] = np.empty((nnodes, 1))
+
+        undeformedSurface['U_max_vec']  = np.empty((nnodes, 3))
+        undeformedSurface['U_mid_vec']  = np.empty((nnodes, 3))
+        undeformedSurface['U_min_vec']  = np.empty((nnodes, 3))
+
+        # undeformedSurface['V_max_vec']  = np.empty((nnodes, 3))
+        # undeformedSurface['V_mid_vec']  = np.empty((nnodes, 3))
+        # undeformedSurface['V_min_vec']  = np.empty((nnodes, 3))
+
+        # undeformedSurface['NE_max_vec'] = np.empty((nnodes, 3))
+        # undeformedSurface['NE_mid_vec'] = np.empty((nnodes, 3))
+        # undeformedSurface['NE_min_vec'] = np.empty((nnodes, 3))
+
+        undeformedSurface['U']          = np.empty((nnodes, 9))
+        undeformedSurface['V']          = np.empty((nnodes, 9))
+        undeformedSurface['NE']         = np.empty((nnodes, 9))
+
+        for i in range(nnodes):
+            H = undeformedSurface["gradient"][i].reshape((3,3)) # displacement gradient
+            I = np.eye(3)                          # identity
+            F = I + H                              # deformation gradient
+            C = F.T @ F                            # right Cauchy-Green
+            B = F @ F.T                            # left Cauchy-Green
+
+            # Polar decomposition F = RU = VR
+            R, U = scipy.linalg.polar(F, side="right")
+            R, V = scipy.linalg.polar(F, side="left")
+
+            # Tensor output (plot using TensorGlyph)
+            undeformedSurface['U'][i] = U.flatten()      # right stretch
+            undeformedSurface['V'][i] = V.flatten()      # left stretch
+            undeformedSurface['NE'][i] = (V-I).flatten() # nominal strain
+
+            def eig(A):
+                """Sorted eigenvalues."""
+                evals, evecs = np.linalg.eig(A)
+                idx = evals.argsort()[::-1]
+                evals = evals[idx]
+                evecs = evecs[:,idx]
+                return evals, evecs
+
+            # NOTE: save principal values and vectors separately
+            # to preserve signs (+/-) when plotting magnitudes.
+
+            # Principal stretches in undeformed
+            evals, evecs = eig(C)
+            undeformedSurface['U_max_val'][i] = np.sqrt(evals[0])
+            undeformedSurface['U_mid_val'][i] = np.sqrt(evals[1])
+            undeformedSurface['U_min_val'][i] = np.sqrt(evals[2])
+            undeformedSurface['U_max_vec'][i] = evecs[:,0]
+            undeformedSurface['U_mid_vec'][i] = evecs[:,1]
+            undeformedSurface['U_min_vec'][i] = evecs[:,2]
+
+            # Principal nominal strain in undeformed
+            # undeformedSurface['NE_max_val'][i] = (np.sqrt(evals[0]) - 1)
+            # undeformedSurface['NE_mid_val'][i] = (np.sqrt(evals[1]) - 1)
+            # undeformedSurface['NE_min_val'][i] = (np.sqrt(evals[2]) - 1)
+            # undeformedSurface['NE_max_vec'][i] = evecs[:,0]
+            # undeformedSurface['NE_mid_vec'][i] = evecs[:,1]
+            # undeformedSurface['NE_min_vec'][i] = evecs[:,2]
+
+            # Principal stretches in deformed
+            # evals, evecs = eig(B)
+            # undeformedSurface['V_max_val'][i] = np.sqrt(evals[0])
+            # undeformedSurface['V_mid_val'][i] = np.sqrt(evals[1])
+            # undeformedSurface['V_min_val'][i] = np.sqrt(evals[2])
+            # undeformedSurface['V_max_vec'][i] = evecs[:,0]
+            # undeformedSurface['V_mid_vec'][i] = evecs[:,1]
+            # undeformedSurface['V_min_vec'][i] = evecs[:,2]
+
+            # Principal nominal strain in deformed
+
+            # Convert undeformedSurface to vtk.vtkPolyData
+
+        ofile = outputDir + "/outputSurface.vtk"
+        print(f"Save to file: {ofile}")
+        undeformedSurface.save(ofile)
 
     def process(self,
                 inputSurface,
                 inputTransform,
-                outputSurface) -> None:
+                outputDir) -> None:
         
         # Clone input surface to outputSurface
+        outputSurface = slicer.vtkMRMLModelNode()
+        outputSurface.SetName('OutputSurface')
         outputSurface.CopyContent(inputSurface)
 
         # Clone input surface and apply transform to produce deformed surface
@@ -260,5 +363,8 @@ class DeformationExtractorLogic(ScriptedLoadableModuleLogic):
 
         # Add the displacement vectors as a point data attribute
         undeformed_polydata = outputSurface.GetPolyData()
-        undeformed_polydata.GetPointData().SetScalars(displacementVectors)
+        undeformed_polydata.GetPointData().SetScalars(displacementVectors)        
         outputSurface.Modified()
+
+        # Get stretch and strain tensors
+        self.computeStretch(outputSurface, outputDir)

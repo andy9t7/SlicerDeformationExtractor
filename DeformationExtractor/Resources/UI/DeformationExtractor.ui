@@ -12,114 +12,73 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="ctkCollapsibleButton" name="inputsCollapsibleButton">
+    <widget class="QLabel" name="inputTransformLabel">
      <property name="text">
-      <string>Inputs</string>
+      <string>Input transform:</string>
      </property>
-     <layout class="QFormLayout" name="formLayout_2">
-      <item row="0" column="0">
-       <widget class="QLabel" name="inputSurfaceLabel">
-        <property name="text">
-         <string>Input surface (.vtk):</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="inputTransformLabel">
-        <property name="text">
-         <string>Input transform:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="qMRMLNodeComboBox" name="inputTransformSelector">
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLGridTransformNode</string>
-         </stringlist>
-        </property>
-        <property name="hideChildNodeTypes">
-         <stringlist notr="true"/>
-        </property>
-        <property name="interactionNodeSingletonTag">
-         <string notr="true"/>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="inputSurfaceSelector">
-        <property name="enabled">
-         <bool>false</bool>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLModelNode</string>
-         </stringlist>
-        </property>
-        <property name="showHidden">
-         <bool>false</bool>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="hideChildNodeTypes">
-         <stringlist notr="true"/>
-        </property>
-        <property name="baseName">
-         <string notr="true"/>
-        </property>
-        <property name="interactionNodeSingletonTag">
-         <string notr="true"/>
-        </property>
-       </widget>
-      </item>
-     </layout>
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="outputsCollapsibleButton">
-     <property name="text">
-      <string>Outputs</string>
+    <widget class="qMRMLNodeComboBox" name="inputSurfaceSelector">
+     <property name="enabled">
+      <bool>false</bool>
      </property>
-     <layout class="QFormLayout" name="formLayout_4">
-      <item row="0" column="0">
-       <widget class="QLabel" name="ouputSurfaceLabel">
-        <property name="text">
-         <string>Output surface (.vtk):</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="qMRMLNodeComboBox" name="outputSurfaceSelector">
-        <property name="toolTip">
-         <string>Result with inverted threshold will be written into this volume</string>
-        </property>
-        <property name="nodeTypes">
-         <stringlist notr="true">
-          <string>vtkMRMLModelNode</string>
-         </stringlist>
-        </property>
-        <property name="showChildNodeTypes">
-         <bool>false</bool>
-        </property>
-        <property name="noneEnabled">
-         <bool>false</bool>
-        </property>
-        <property name="addEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="removeEnabled">
-         <bool>true</bool>
-        </property>
-        <property name="interactionNodeSingletonTag">
-         <string/>
-        </property>
-        <property name="selectNodeUponCreation">
-         <bool>true</bool>
-        </property>
-       </widget>
-      </item>
-     </layout>
+     <property name="nodeTypes">
+      <stringlist notr="true">
+       <string>vtkMRMLModelNode</string>
+      </stringlist>
+     </property>
+     <property name="showHidden">
+      <bool>false</bool>
+     </property>
+     <property name="showChildNodeTypes">
+      <bool>false</bool>
+     </property>
+     <property name="hideChildNodeTypes">
+      <stringlist notr="true"/>
+     </property>
+     <property name="baseName">
+      <string notr="true"/>
+     </property>
+     <property name="interactionNodeSingletonTag">
+      <string notr="true"/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="inputSurfaceLabel">
+     <property name="text">
+      <string>Input surface (.vtk):</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="qMRMLNodeComboBox" name="inputTransformSelector">
+     <property name="nodeTypes">
+      <stringlist notr="true">
+       <string>vtkMRMLGridTransformNode</string>
+      </stringlist>
+     </property>
+     <property name="hideChildNodeTypes">
+      <stringlist notr="true"/>
+     </property>
+     <property name="interactionNodeSingletonTag">
+      <string notr="true"/>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="ouputDir">
+     <property name="text">
+      <string>Output surface directory:</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkPathLineEdit" name="outputDirPath">
+     <property name="filters">
+      <set>ctkPathLineEdit::Dirs|ctkPathLineEdit::Executable|ctkPathLineEdit::NoDot|ctkPathLineEdit::NoDotDot|ctkPathLineEdit::Readable</set>
+     </property>
     </widget>
    </item>
    <item>
@@ -140,7 +99,11 @@
      <property name="plainText">
       <string>Details:
 
-This module will take in a surface mesh (.vtk) and a transform (e.g.  from image registration) and compute the displacement,  strain and stretch values. These values will be added as attribute data to the output surface mesh for visualisation and analysis.</string>
+This module will take in a surface mesh (.vtk) and a transform (e.g.  from image registration).
+
+It will compute the displacement,  strain and stretch values in the undeformed configuration. 
+
+These values will be added as attribute data to the output (initial/undeformed) surface mesh (.vtk) for visualisation and analysis.</string>
      </property>
     </widget>
    </item>
@@ -161,10 +124,9 @@ This module will take in a surface mesh (.vtk) and a transform (e.g.  from image
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ctkCollapsibleButton</class>
+   <class>ctkPathLineEdit</class>
    <extends>QWidget</extends>
-   <header>ctkCollapsibleButton.h</header>
-   <container>1</container>
+   <header>ctkPathLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>qMRMLNodeComboBox</class>
@@ -180,22 +142,6 @@ This module will take in a surface mesh (.vtk) and a transform (e.g.  from image
  </customwidgets>
  <resources/>
  <connections>
-  <connection>
-   <sender>DeformationExtractor</sender>
-   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
-   <receiver>outputSurfaceSelector</receiver>
-   <slot>setMRMLScene(vtkMRMLScene*)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>161</x>
-     <y>8</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>173</x>
-     <y>176</y>
-    </hint>
-   </hints>
-  </connection>
   <connection>
    <sender>DeformationExtractor</sender>
    <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
@@ -225,6 +171,22 @@ This module will take in a surface mesh (.vtk) and a transform (e.g.  from image
     <hint type="destinationlabel">
      <x>223</x>
      <y>45</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>DeformationExtractor</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>outputDirPath</receiver>
+   <slot>addCurrentPathToHistory()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>162</x>
+     <y>155</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>162</x>
+     <y>128</y>
     </hint>
    </hints>
   </connection>
