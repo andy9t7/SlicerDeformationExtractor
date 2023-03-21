@@ -12,9 +12,9 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QLabel" name="inputTransformLabel">
+    <widget class="QLabel" name="inputSurfaceLabel">
      <property name="text">
-      <string>Input transform:</string>
+      <string>Input surface (.vtk):</string>
      </property>
     </widget>
    </item>
@@ -46,9 +46,9 @@
     </widget>
    </item>
    <item>
-    <widget class="QLabel" name="inputSurfaceLabel">
+    <widget class="QLabel" name="inputTransformLabel">
      <property name="text">
-      <string>Input surface (.vtk):</string>
+      <string>Input transform:</string>
      </property>
     </widget>
    </item>
