@@ -23,7 +23,12 @@ class DeformationExtractor(ScriptedLoadableModule):
         self.parent.contributors = ["Andy Huynh (University of Western Australia)", "Benjamin Zwick (Universiy of Western Australia)"]  # TODO: replace with "Firstname Lastname (Organization)"
         # TODO: update with short description of the module and a link to online module documentation
         self.parent.helpText = """
-This is an example of scripted loadable module bundled in an extension.
+This module will take in a surface mesh (.vtk) and a transform (e.g. from image registration).
+
+It will compute the displacement, strain and stretch values in the undeformed configuration.
+
+These values will be added as attribute data to the output (initial/undeformed) surface mesh (.vtk) for visualisation and analysis.
+
 See more information in <a href="https://github.com/organization/projectname#DeformationExtractor">module documentation</a>.
 """
         # TODO: replace with organization, grant and thanks

@@ -95,19 +95,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QPlainTextEdit" name="plainTextEdit">
-     <property name="plainText">
-      <string>Details:
-
-This module will take in a surface mesh (.vtk) and a transform (e.g.  from image registration).
-
-It will compute the displacement,  strain and stretch values in the undeformed configuration. 
-
-These values will be added as attribute data to the output (initial/undeformed) surface mesh (.vtk) for visualisation and analysis.</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
